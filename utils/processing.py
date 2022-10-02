@@ -71,8 +71,24 @@ def preprocess_size_sqft(df):
 
 def preprocess_floor_level(df):
     '''
-    To fill in
-    '''
+    Do simple replacement. nans are filled with NA and others we strip the unnnecessary info
+    ''' 
+    df['floor_level'] = df['floor_level'].fillna('NA')
+    df.loc[df['floor_level'] == 'ground (9 total)', 'floor_level'] = 'ground'
+    df.loc[df['floor_level'] == 'high (70 total)', 'floor_level'] = 'high'
+    df.loc[df['floor_level'] == 'low (17 total)', 'floor_level'] = 'low'
+    df.loc[df['floor_level'] == 'high (25 total)', 'floor_level'] = 'high'
+    df.loc[df['floor_level'] == 'mid (25 total)', 'floor_level'] = 'mid'
+    df.loc[df['floor_level'] == 'low (23 total)', 'floor_level'] = 'low'
+    df.loc[df['floor_level'] == 'high (23 total)', 'floor_level'] = 'high'
+    df.loc[df['floor_level'] == 'high (10 total)', 'floor_level'] = 'high'
+    df.loc[df['floor_level'] == 'high (9 total)', 'floor_level'] = 'high'
+    df.loc[df['floor_level'] == 'high (17 total)', 'floor_level'] = 'high'
+    df.loc[df['floor_level'] == 'mid (9 total)', 'floor_level'] = 'mid'
+    df_ohe = pd.get_dummies(df['floor_level'], drop_first=True)
+    renamed_cols = ['floor_level_' + x for x in df_ohe.columns]
+    df_ohe.columns = renamed_cols
+    df = pd.merge(df, df_ohe, left_index=True, right_index=True)
     
     return df 
 
@@ -89,14 +105,6 @@ def preprocess_furnishing(df):
     df = pd.merge(df, df_ohe, left_index=True, right_index=True)
     
     return df
-
-
-def preprocess_available_unit_types(df):
-    '''
-    
-    '''
-    
-    return df 
 
 
 def preprocess(df):
