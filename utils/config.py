@@ -48,4 +48,14 @@ tenure_high_year = [
     'freehold'
 ]
 
-#
+gep_school_names = [
+    'Rosyth School', 
+    "St. Hilda's Primary School",
+    'Catholic High School (Primary)',
+    'Henry Park Primary School',
+    'Nan Hua Primary School',
+    'Nanyang Primary School',
+    'Tao Nan School',
+    'Anglo-Chinese School (Primary)',
+    "Raffles Girls' Primary School"
+]

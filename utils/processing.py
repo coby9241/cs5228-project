@@ -1,5 +1,7 @@
+from doctest import DocFileSuite
 import numpy as np
 import pandas as pd
+from math import radians, cos, sin, asin, sqrt
 
 from utils.config import *
 
@@ -107,6 +109,200 @@ def preprocess_furnishing(df):
     return df
 
 
+def preprocess_latlong(df): 
+    '''
+    Filter only lat-lng coordinates within Singapore
+    '''
+    min_lat, min_lng, max_lng, max_lat = 0., 100., 115., 10.
+    df = df[(df.lat > min_lat) & (df.lat < max_lat)]
+    df = df[(df.lng > min_lng) & (df.lng < max_lng)]
+
+    return df 
+
+
+def preprocess_price(df): 
+    '''
+    Filter out prices = 0 and prices in the top 1% 
+    '''
+    min_price = 0. 
+    max_price = 2.289000e7
+    df = df[(df.price > min_price) & (df.price <= max_price)]
+
+    return df 
+
+
+def calculate_haversine_distance_in_km(lon1, lat1, lon2, lat2):
+    '''
+    Calculate the great circle distance in kilometers between two points 
+    on the earth (specified in decimal degrees)
+    '''
+    # convert decimal degrees to radians 
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+
+    # haversine formula 
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a)) 
+    r = 6371 # radius of earth in kilometers
+    return c * r
+
+
+def join_with_mrt_stations(df, mrt_stations_df): 
+    '''
+    Merge dataframe with auxillary mrt stations dataframe to find:
+    1. Distance to the nearest mrt station
+    2. Line of the nearest mrt station
+    '''
+    # create a common joining key 
+    df['key'] = 0
+    mrt_stations_df['key'] = 0
+
+    # rename the overlapping columns 
+    mrt_stations_df = mrt_stations_df.rename(columns={'lat': 'lat_y', 'lng': 'lng_y'})
+
+    # get nearest mrt station in km
+    df = df.merge(mrt_stations_df[['name', 'key', 'lat_y', 'lng_y']], on='key')
+    df['nearest_mrt_distance_in_km'] = df.apply(
+        lambda row: calculate_haversine_distance_in_km(row.lng, row.lat, row.lng_y, row.lat_y), 
+        axis=1
+    )
+    df = df.loc[df.groupby('listing_id')['nearest_mrt_distance_in_km'].idxmin()]
+
+    # one hot encoding of the line of nearest mrt station
+    mrt_lines_df = pd.concat([
+        mrt_stations_df[['name']], 
+        pd.get_dummies(mrt_stations_df[['line']])
+    ], axis=1).groupby('name').sum().reset_index()
+    df = df.merge(mrt_lines_df, on='name', how='left')
+
+    # drop unncessary columns
+    df = df.drop(columns=['key', 'lat_y', 'lng_y', 'name'])
+
+    return df
+
+
+def join_with_regions(df, regions_df): 
+    '''
+    Merge dataframe with auxillary regions dataframe to find:
+    1. Region in Singapore that the planning area belongs to
+    '''
+    regions_df['planning_area'] = regions_df.planning_area.str.lower()
+    df = df.merge(regions_df, on='planning_area', how='left')
+
+    return df
+
+
+def join_with_subzones(df, subzones_df): 
+    '''
+    Merge dataframe with auxillary subzones dataframe to find:
+    1. Population, area size and density of the subzone in which the listing resides 
+    '''
+    df = df.merge(subzones_df[['name', 'area_size', 'population']], left_on='subzone', right_on='name', how='left')
+    df['density'] = df['population']/df['area_size']
+    df = df.drop(columns=['name'])
+
+    return df
+
+
+def join_with_primary_schools(df, primary_schools_df): 
+    '''
+    Merge dataframe with auxillary primary schools dataframe to find:
+    1. Distance to the nearest GEP primary school
+    2. Distance to the nearest primary school 
+    '''
+    # create a common joining key 
+    df['key'] = 0
+    primary_schools_df['key'] = 0
+
+    # rename the overlapping columns 
+    primary_schools_df = primary_schools_df.rename(columns={'lat': 'lat_y', 'lng': 'lng_y'})
+
+    # get distances to all schools from all listings 
+    all_sch_df = df.merge(primary_schools_df[['name', 'key', 'lat_y', 'lng_y']], on='key')
+    all_sch_df['pri_sch_distance_in_km'] = all_sch_df.apply(
+        lambda row: calculate_haversine_distance_in_km(row.lng, row.lat, row.lng_y, row.lat_y), 
+        axis=1
+    )
+    all_sch_df['is_gep_pri_sch'] = np.where(all_sch_df['name'].isin(gep_school_names), 1, 0)
+
+    # get nearest primary school in km for each listing_id 
+    nearest_pri_sch_df = all_sch_df.loc[all_sch_df.groupby('listing_id')['pri_sch_distance_in_km'].idxmin()][['listing_id', 'pri_sch_distance_in_km']]
+    nearest_pri_sch_df = nearest_pri_sch_df.rename(columns={'pri_sch_distance_in_km': 'nearest_pri_sch_distance_in_km'})
+    df = pd.merge(df, nearest_pri_sch_df, on='listing_id', how='left')
+
+    # get nearest gep primary school in km for each listing_id
+    nearest_gep_pri_sch_df = all_sch_df.loc[all_sch_df[all_sch_df.is_gep_pri_sch == 1].groupby('listing_id')['pri_sch_distance_in_km'].idxmin()][['listing_id', 'pri_sch_distance_in_km']]
+    nearest_gep_pri_sch_df = nearest_gep_pri_sch_df.rename(columns={'pri_sch_distance_in_km': 'nearest_gep_pri_sch_distance_in_km'})
+    df = pd.merge(df, nearest_gep_pri_sch_df, on='listing_id', how='left')
+
+    # feature engineering
+    df['gep_pri_sch_within_1km'] = np.where(df['nearest_gep_pri_sch_distance_in_km'] <= 1., 1, 0)
+    df['gep_pri_sch_within_1km_2km'] = np.where((df['nearest_gep_pri_sch_distance_in_km'] > 1.) & (df['nearest_gep_pri_sch_distance_in_km'] <= 2.), 1, 0)
+    df['gep_pri_sch_outside_2km'] = np.where(df['nearest_gep_pri_sch_distance_in_km'] > 2., 1, 0)
+    df['pri_sch_within_500m'] = np.where(df['nearest_pri_sch_distance_in_km'] <= 0.5, 1, 0)
+    df['pri_sch_outside_500m'] = np.where(df['nearest_pri_sch_distance_in_km'] > 0.5, 1, 0)
+
+    # drop unnecessary columns
+    df = df.drop(columns=['key'])
+
+    return df
+
+
+def join_with_shopping_malls(df, shopping_malls_df): 
+    '''
+    Merge dataframe with auxillary shopping malls dataframe to find:
+    1. Distance to the nearest shopping mall
+    '''
+    # create a common joining key 
+    df['key'] = 0
+    shopping_malls_df['key'] = 0
+
+    # rename the overlapping columns 
+    shopping_malls_df = shopping_malls_df.rename(columns={'lat': 'lat_y', 'lng': 'lng_y'})
+
+    # get the nearest shopping mall for each listing
+    df = df.merge(shopping_malls_df[['lat_y', 'lng_y', 'key']], on='key')    
+    df['nearest_mall_distance_in_km'] = df.apply(
+        lambda row: calculate_haversine_distance_in_km(row.lng, row.lat, row.lng_y, row.lat_y), 
+        axis=1
+    )     
+    df = df.loc[df.groupby('listing_id')['nearest_mall_distance_in_km'].idxmin()]
+
+    # drop unnecessary columns
+    df = df.drop(columns=['key', 'lat_y', 'lng_y'])
+
+    return df 
+
+
+def join_with_commercial_centres(df, commercial_centres_df): 
+    '''
+    Merge dataframe with auxillary commercial centres dataframe to find:
+    1. Distance to the nearest commercial centre
+    '''
+    # create a common joining key 
+    df['key'] = 0
+    commercial_centres_df['key'] = 0
+
+    # rename the overlapping columns 
+    commercial_centres_df = commercial_centres_df.rename(columns={'lat': 'lat_y', 'lng': 'lng_y'})
+
+    # get the nearest commercial centre for each listing
+    df = df.merge(commercial_centres_df[['type', 'lat_y', 'lng_y', 'key']], on='key')    
+    df['nearest_com_centre_distance_in_km'] = df.apply(
+        lambda row: calculate_haversine_distance_in_km(row.lng, row.lat, row.lng_y, row.lat_y), 
+        axis=1
+    )     
+    df = df.loc[df.groupby('listing_id')['nearest_com_centre_distance_in_km'].idxmin()]
+
+    df = pd.merge(df, pd.get_dummies(df['type'], prefix='cc_type'), left_index=True, right_index=True)
+
+    # drop unnecessary columns
+    df = df.drop(columns=['key', 'lat_y', 'lng_y', 'type'])
+
+    return df 
+
+
 def preprocess(df):
     df = preprocess_property_type(df)
     df = preprocess_tenure(df)
@@ -115,12 +311,29 @@ def preprocess(df):
     df = preprocess_size_sqft(df)
     df = preprocess_floor_level(df)
     df = preprocess_furnishing(df)
-    
+    df = preprocess_latlong(df)
+    df = preprocess_price(df)
+
     return df
 
 
 if __name__ == '__main__':
     df = pd.read_csv('data/train.csv')
     df = preprocess(df)
+
+    mrt_stations_df = pd.read_csv("./data/auxiliary-data/sg-mrt-stations.csv")
+    primary_schools_df = pd.read_csv("./data/auxiliary-data/sg-primary-schools.csv")
+    commercial_centres_df = pd.read_csv("./data/auxiliary-data/sg-commerical-centres.csv")
+    shopping_malls_df = pd.read_csv("./data/auxiliary-data/sg-shopping-malls.csv")
+    secondary_schools_df = pd.read_csv("./data/auxiliary-data/sg-secondary-schools.csv")
+    subzones_df = pd.read_csv("./data/auxiliary-data/sg-subzones.csv")
+    regions_df = pd.read_csv("./data/extra/sg-regions.csv")
+
+    df = join_with_mrt_stations(df, mrt_stations_df)
+    df = join_with_primary_schools(df, primary_schools_df)
+    df = join_with_regions(df, regions_df)
+    df = join_with_subzones(df, subzones_df)
+    df = join_with_shopping_malls(df, shopping_malls_df)
+    df = join_with_commercial_centres(df, commercial_centres_df)
 
     print(df[:10])
