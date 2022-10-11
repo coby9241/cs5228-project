@@ -39,11 +39,15 @@ def preprocess_tenure(df):
     return df
 
 
-def preprocess_num_beds(df):
+def preprocess_num_beds(df, is_target=False):
     '''
     Remove missing values
     '''
-    df = df[df['num_beds'].notna()]
+    if not is_target:
+        df = df[df['num_beds'].notna()]
+    else:
+        # todo, fill with mean or median of training data
+        df['num_beds'].fillna(0, inplace=True)
     
     return df 
 
@@ -60,13 +64,14 @@ def preprocess_num_baths(df):
     return df 
 
 
-def preprocess_size_sqft(df):
+def preprocess_size_sqft(df, is_target=False):
     '''
     Remove outliers:
     1. Remove if sqft = 0
     2. Remove if sqft >= 70000  
     '''
-    df = df[(df['size_sqft'] > 0) & (df['size_sqft'] < 70000)]
+    if not is_target:
+        df = df[(df['size_sqft'] > 0) & (df['size_sqft'] < 70000)]
     
     return df 
 
@@ -109,10 +114,13 @@ def preprocess_furnishing(df):
     return df
 
 
-def preprocess_latlong(df): 
+def preprocess_latlong(df, is_target=False): 
     '''
     Filter only lat-lng coordinates within Singapore
     '''
+    if is_target:
+        return df
+    
     min_lat, min_lng, max_lng, max_lat = 0., 100., 115., 10.
     df = df[(df.lat > min_lat) & (df.lat < max_lat)]
     df = df[(df.lng > min_lng) & (df.lng < max_lng)]
@@ -120,10 +128,13 @@ def preprocess_latlong(df):
     return df 
 
 
-def preprocess_price(df): 
+def preprocess_price(df, is_target=False): 
     '''
     Filter out prices = 0 and prices in the top 1% 
     '''
+    if is_target:
+        return df
+
     min_price = 0. 
     max_price = 2.289000e7
     df = df[(df.price > min_price) & (df.price <= max_price)]
@@ -303,16 +314,17 @@ def join_with_commercial_centres(df, commercial_centres_df):
     return df 
 
 
-def preprocess(df):
+def preprocess(df, is_target=False):
     df = preprocess_property_type(df)
     df = preprocess_tenure(df)
-    df = preprocess_num_beds(df)
+    df = preprocess_num_beds(df, is_target)
     df = preprocess_num_baths(df)
-    df = preprocess_size_sqft(df)
+    df = preprocess_size_sqft(df, is_target)
     df = preprocess_floor_level(df)
     df = preprocess_furnishing(df)
-    df = preprocess_latlong(df)
-    df = preprocess_price(df)
+    df = preprocess_latlong(df, is_target)
+    if not is_target:
+        df = preprocess_price(df, is_target)
 
     return df
 
