@@ -317,23 +317,48 @@ def preprocess(df, is_target=False):
     return df
 
 
+def read_aux_csv(path):
+    dfs = dict()
+    dfs['mrt_stations'] = pd.read_csv("./data/auxiliary-data/sg-mrt-stations.csv")
+    dfs['primary_schools'] = pd.read_csv("./data/auxiliary-data/sg-primary-schools.csv")
+    dfs['commercial_centres'] = pd.read_csv("./data/auxiliary-data/sg-commerical-centres.csv")
+    dfs['shopping_malls'] = pd.read_csv("./data/auxiliary-data/sg-shopping-malls.csv")
+    dfs['secondary_schools'] = pd.read_csv("./data/auxiliary-data/sg-secondary-schools.csv")
+    dfs['subzones'] = pd.read_csv("./data/auxiliary-data/sg-subzones.csv")
+    dfs['regions'] = pd.read_csv("./data/extra/sg-regions.csv")
+
+    return dfs
+
+
+def join_aux(df, adfs):
+    fn_dict = {
+        'mrt_stations': join_with_mrt_stations,
+        'primary_schools': join_with_primary_schools,
+        'commercial_centres': join_with_commercial_centres,
+        'shopping_malls': join_with_shopping_malls,
+        'subzones': join_with_subzones,
+        'regions': join_with_regions,
+    }
+
+    df = df.copy()
+
+    for k,adf in adfs.items():
+        if k in fn_dict:
+            df = fn_dict[k](df, adf)
+
+    return df
+
+
 if __name__ == '__main__':
     df = pd.read_csv('data/train.csv')
     df = preprocess(df)
 
-    mrt_stations_df = pd.read_csv("./data/auxiliary-data/sg-mrt-stations.csv")
-    primary_schools_df = pd.read_csv("./data/auxiliary-data/sg-primary-schools.csv")
-    commercial_centres_df = pd.read_csv("./data/auxiliary-data/sg-commerical-centres.csv")
-    shopping_malls_df = pd.read_csv("./data/auxiliary-data/sg-shopping-malls.csv")
-    secondary_schools_df = pd.read_csv("./data/auxiliary-data/sg-secondary-schools.csv")
-    subzones_df = pd.read_csv("./data/auxiliary-data/sg-subzones.csv")
-    regions_df = pd.read_csv("./data/extra/sg-regions.csv")
+    print(df.columns)
+    print(df[:10])
 
-    df = join_with_mrt_stations(df, mrt_stations_df)
-    df = join_with_primary_schools(df, primary_schools_df)
-    df = join_with_regions(df, regions_df)
-    df = join_with_subzones(df, subzones_df)
-    df = join_with_shopping_malls(df, shopping_malls_df)
-    df = join_with_commercial_centres(df, commercial_centres_df)
+    # read and join auxiliary data
+    adfs = read_aux_csv('./data')
+    df = join_aux(df, adfs)
 
+    print(df.columns)
     print(df[:10])
