@@ -148,13 +148,13 @@ def calculate_haversine_distance_in_km(lon1, lat1, lon2, lat2):
     on the earth (specified in decimal degrees)
     '''
     # convert decimal degrees to radians
-    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
 
     # haversine formula
     dlon = lon2 - lon1
     dlat = lat2 - lat1
-    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-    c = 2 * asin(sqrt(a))
+    a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
+    c = 2 * np.arcsin(np.sqrt(a))
     r = 6371 # radius of earth in kilometers
     return c * r
 
@@ -174,10 +174,7 @@ def join_with_mrt_stations(df, mrt_stations_df):
 
     # get nearest mrt station in km
     df = df.merge(mrt_stations_df[['name', 'key', 'lat_y', 'lng_y']], on='key')
-    df['nearest_mrt_distance_in_km'] = df.apply(
-        lambda row: calculate_haversine_distance_in_km(row.lng, row.lat, row.lng_y, row.lat_y),
-        axis=1
-    )
+    df['nearest_mrt_distance_in_km'] = calculate_haversine_distance_in_km(df['lng'], df['lat'], df['lng_y'], df['lat_y'])
     df = df.loc[df.groupby('listing_id')['nearest_mrt_distance_in_km'].idxmin()]
 
     # one hot encoding of the line of nearest mrt station
@@ -231,10 +228,7 @@ def join_with_primary_schools(df, primary_schools_df):
 
     # get distances to all schools from all listings
     all_sch_df = df.merge(primary_schools_df[['name', 'key', 'lat_y', 'lng_y']], on='key')
-    all_sch_df['pri_sch_distance_in_km'] = all_sch_df.apply(
-        lambda row: calculate_haversine_distance_in_km(row.lng, row.lat, row.lng_y, row.lat_y),
-        axis=1
-    )
+    all_sch_df['pri_sch_distance_in_km'] = calculate_haversine_distance_in_km(all_sch_df['lng'], all_sch_df['lat'], all_sch_df['lng_y'], all_sch_df['lat_y'])
     all_sch_df['is_gep_pri_sch'] = np.where(all_sch_df['name'].isin(gep_school_names), 1, 0)
 
     # get nearest primary school in km for each listing_id
@@ -274,10 +268,7 @@ def join_with_shopping_malls(df, shopping_malls_df):
 
     # get the nearest shopping mall for each listing
     df = df.merge(shopping_malls_df[['lat_y', 'lng_y', 'key']], on='key')
-    df['nearest_mall_distance_in_km'] = df.apply(
-        lambda row: calculate_haversine_distance_in_km(row.lng, row.lat, row.lng_y, row.lat_y),
-        axis=1
-    )
+    df['nearest_mall_distance_in_km'] = calculate_haversine_distance_in_km(df['lng'], df['lat'], df['lng_y'], df['lat_y'])
     df = df.loc[df.groupby('listing_id')['nearest_mall_distance_in_km'].idxmin()]
 
     # drop unnecessary columns
@@ -300,10 +291,7 @@ def join_with_commercial_centres(df, commercial_centres_df):
 
     # get the nearest commercial centre for each listing
     df = df.merge(commercial_centres_df[['type', 'lat_y', 'lng_y', 'key']], on='key')
-    df['nearest_com_centre_distance_in_km'] = df.apply(
-        lambda row: calculate_haversine_distance_in_km(row.lng, row.lat, row.lng_y, row.lat_y),
-        axis=1
-    )
+    df['nearest_com_centre_distance_in_km'] = calculate_haversine_distance_in_km(df['lng'], df['lat'], df['lng_y'], df['lat_y'])
     df = df.loc[df.groupby('listing_id')['nearest_com_centre_distance_in_km'].idxmin()]
 
     df = pd.merge(df, pd.get_dummies(df['type'], prefix='cc_type'), left_index=True, right_index=True)
