@@ -319,13 +319,13 @@ def preprocess(df, is_target=False):
 
 def read_aux_csv(path):
     dfs = dict()
-    dfs['mrt_stations'] = pd.read_csv("./data/auxiliary-data/sg-mrt-stations.csv")
-    dfs['primary_schools'] = pd.read_csv("./data/auxiliary-data/sg-primary-schools.csv")
-    dfs['commercial_centres'] = pd.read_csv("./data/auxiliary-data/sg-commerical-centres.csv")
-    dfs['shopping_malls'] = pd.read_csv("./data/auxiliary-data/sg-shopping-malls.csv")
-    dfs['secondary_schools'] = pd.read_csv("./data/auxiliary-data/sg-secondary-schools.csv")
-    dfs['subzones'] = pd.read_csv("./data/auxiliary-data/sg-subzones.csv")
-    dfs['regions'] = pd.read_csv("./data/extra/sg-regions.csv")
+    dfs['mrt_stations'] = pd.read_csv("{}/auxiliary-data/sg-mrt-stations.csv".format(path))
+    dfs['primary_schools'] = pd.read_csv("{}/auxiliary-data/sg-primary-schools.csv".format(path))
+    dfs['commercial_centres'] = pd.read_csv("{}/auxiliary-data/sg-commerical-centres.csv".format(path))
+    dfs['shopping_malls'] = pd.read_csv("{}/auxiliary-data/sg-shopping-malls.csv".format(path))
+    dfs['secondary_schools'] = pd.read_csv("{}/auxiliary-data/sg-secondary-schools.csv".format(path))
+    dfs['subzones'] = pd.read_csv("{}/auxiliary-data/sg-subzones.csv".format(path))
+    dfs['regions'] = pd.read_csv("{}/extra/sg-regions.csv".format(path))
 
     return dfs
 
