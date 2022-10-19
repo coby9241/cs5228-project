@@ -46,8 +46,7 @@ def preprocess_num_beds(df, is_target=False):
     if not is_target:
         df = df[df['num_beds'].notna()]
     else:
-        # todo, fill with mean or median of training data
-        df['num_beds'].fillna(0, inplace=True)
+        df['num_beds'].fillna(df['num_beds'].mean(), inplace=True)
 
     return df
 
@@ -118,10 +117,15 @@ def preprocess_latlong(df, is_target=False):
     '''
     Filter only lat-lng coordinates within Singapore
     '''
-    if is_target:
-        return df
 
     min_lat, min_lng, max_lng, max_lat = 0., 100., 115., 10.
+
+    if is_target:
+        # if lat lng falls outside of region specified, set it to be the middle of Singapore
+        df.lat = df.lat.apply(lambda lat: 1.29 if lat > max_lat or lat < min_lat else lat)
+        df.lng = df.lng.apply(lambda lng: 103.85 if lng > max_lng or lng < min_lng else lng)
+        return df
+
     df = df[(df.lat > min_lat) & (df.lat < max_lat)]
     df = df[(df.lng > min_lng) & (df.lng < max_lng)]
 
