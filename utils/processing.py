@@ -39,27 +39,30 @@ def preprocess_tenure(df):
     return df
 
 
-def preprocess_num_beds(df, is_target=False):
+def preprocess_num_beds(df, is_target=False, **kwargs):
     '''
     Remove missing values
     '''
     if not is_target:
         df = df[df['num_beds'].notna()]
     else:
-        # todo, fill with mean or median of training data
-        df['num_beds'].fillna(0, inplace=True)
+        df['num_beds'].fillna(kwargs['num_beds'], inplace=True)
 
     return df
 
 
-def preprocess_num_baths(df):
+def preprocess_num_baths(df, is_target=False, **kwargs):
     '''
     Fill missing values with median num_baths of corresponding num_beds values
     '''
-    median_num_baths = df.groupby('num_beds').agg({'num_baths':'median'}).rename(columns={'num_baths': 'median_num_baths'}).reset_index()
-    df = pd.merge(df, median_num_baths, on='num_beds', how='left')
-    df['num_baths'] = np.where(df['num_baths'].isnull(),df['median_num_baths'],df['num_baths'])
-    df.drop(columns='median_num_baths', inplace=True)
+
+    if not is_target:
+        median_num_baths = df.groupby('num_beds').agg({'num_baths':'median'}).rename(columns={'num_baths': 'median_num_baths'}).reset_index()
+        df = pd.merge(df, median_num_baths, on='num_beds', how='left')
+        df['num_baths'] = np.where(df['num_baths'].isnull(),df['median_num_baths'],df['num_baths'])
+        df.drop(columns='median_num_baths', inplace=True)
+    else:
+        df['num_baths'].fillna(kwargs['num_baths'], inplace=True)
 
     return df
 
@@ -118,10 +121,15 @@ def preprocess_latlong(df, is_target=False):
     '''
     Filter only lat-lng coordinates within Singapore
     '''
-    if is_target:
-        return df
 
     min_lat, min_lng, max_lng, max_lat = 0., 100., 115., 10.
+
+    if is_target:
+        # if lat lng falls outside of region specified, set it to be the middle of Singapore
+        df.lat = df.lat.apply(lambda lat: 1.29 if lat > max_lat or lat < min_lat else lat)
+        df.lng = df.lng.apply(lambda lng: 103.85 if lng > max_lng or lng < min_lng else lng)
+        return df
+
     df = df[(df.lat > min_lat) & (df.lat < max_lat)]
     df = df[(df.lng > min_lng) & (df.lng < max_lng)]
 
@@ -302,11 +310,11 @@ def join_with_commercial_centres(df, commercial_centres_df):
     return df
 
 
-def preprocess(df, is_target=False):
+def preprocess(df, is_target=False, **kwargs):
     df = preprocess_property_type(df)
     df = preprocess_tenure(df)
-    df = preprocess_num_beds(df, is_target)
-    df = preprocess_num_baths(df)
+    df = preprocess_num_beds(df, is_target, **kwargs)
+    df = preprocess_num_baths(df, is_target, **kwargs)
     df = preprocess_size_sqft(df, is_target)
     df = preprocess_floor_level(df)
     df = preprocess_furnishing(df)
