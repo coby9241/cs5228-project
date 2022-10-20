@@ -39,26 +39,30 @@ def preprocess_tenure(df):
     return df
 
 
-def preprocess_num_beds(df, is_target=False):
+def preprocess_num_beds(df, is_target=False, **kwargs):
     '''
     Remove missing values
     '''
     if not is_target:
         df = df[df['num_beds'].notna()]
     else:
-        df['num_beds'].fillna(df['num_beds'].mean(), inplace=True)
+        df['num_beds'].fillna(kwargs['num_beds'], inplace=True)
 
     return df
 
 
-def preprocess_num_baths(df):
+def preprocess_num_baths(df, is_target=False, **kwargs):
     '''
     Fill missing values with median num_baths of corresponding num_beds values
     '''
-    median_num_baths = df.groupby('num_beds').agg({'num_baths':'median'}).rename(columns={'num_baths': 'median_num_baths'}).reset_index()
-    df = pd.merge(df, median_num_baths, on='num_beds', how='left')
-    df['num_baths'] = np.where(df['num_baths'].isnull(),df['median_num_baths'],df['num_baths'])
-    df.drop(columns='median_num_baths', inplace=True)
+
+    if not is_target:
+        median_num_baths = df.groupby('num_beds').agg({'num_baths':'median'}).rename(columns={'num_baths': 'median_num_baths'}).reset_index()
+        df = pd.merge(df, median_num_baths, on='num_beds', how='left')
+        df['num_baths'] = np.where(df['num_baths'].isnull(),df['median_num_baths'],df['num_baths'])
+        df.drop(columns='median_num_baths', inplace=True)
+    else:
+        df['num_baths'].fillna(kwargs['num_baths'], inplace=True)
 
     return df
 
@@ -306,11 +310,11 @@ def join_with_commercial_centres(df, commercial_centres_df):
     return df
 
 
-def preprocess(df, is_target=False):
+def preprocess(df, is_target=False, **kwargs):
     df = preprocess_property_type(df)
     df = preprocess_tenure(df)
-    df = preprocess_num_beds(df, is_target)
-    df = preprocess_num_baths(df)
+    df = preprocess_num_beds(df, is_target, **kwargs)
+    df = preprocess_num_baths(df, is_target, **kwargs)
     df = preprocess_size_sqft(df, is_target)
     df = preprocess_floor_level(df)
     df = preprocess_furnishing(df)
