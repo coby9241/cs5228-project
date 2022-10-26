@@ -44,7 +44,7 @@ def plot_boxplot(df, feature=None, y='price', y_min=-np.inf, y_max=np.inf, figsi
     plt.show()
     
     
-def plot_scatterplot(df, X, y, y_min=-np.inf, y_max=np.inf, figsize=(15,10)):
+def plot_scatterplot(df, X, y, y_min=-np.inf, y_max=np.inf, figsize=(15,10), group=None):
     '''
     df: dataframe containing predictors and target variable
     X: x variable
@@ -64,6 +64,10 @@ def plot_scatterplot(df, X, y, y_min=-np.inf, y_max=np.inf, figsize=(15,10)):
     # add axis labels
     plt.ylabel(y)
     plt.xlabel(X)
-    plt.title(f'{y.upper()} vs {X.upper()}')
+    
+    if group is not None: 
+        plt.title(f'{y.upper()} vs {X.upper()} for {group}')
+    else: 
+        plt.title(f'{y.upper()} vs {X.upper()}')
 
     plt.show()
