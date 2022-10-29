@@ -177,6 +177,8 @@ def join_with_mrt_stations(df, mrt_stations_df):
     df['key'] = 0
     mrt_stations_df['key'] = 0
 
+    df.reset_index(inplace=True)
+
     # rename the overlapping columns
     mrt_stations_df = mrt_stations_df.rename(columns={'lat': 'lat_y', 'lng': 'lng_y'})
 
@@ -192,8 +194,11 @@ def join_with_mrt_stations(df, mrt_stations_df):
     ], axis=1).groupby('name').sum().reset_index()
     df = df.merge(mrt_lines_df, on='name', how='left')
 
+    df = df.sort_values(by=['index'])
+
     # drop unncessary columns
-    df = df.drop(columns=['key', 'lat_y', 'lng_y', 'name'])
+    df = df.drop(columns=['key', 'lat_y', 'lng_y', 'name', 'index'])
+    df.reset_index(inplace=True, drop=True)
 
     return df
 
