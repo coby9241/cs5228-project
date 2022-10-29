@@ -21,22 +21,24 @@ class knn(BaseRecommender):
         # All features are used to fit model if users do not specify preferred features
         if feature_idx == 'default':
             feature_idx = range(0, self.X_transformed.shape[1])
-
+        
+        # Decide n_neighbours based on k
+        n_neighbors = k + 1 if max_k is None else max_k + 1
+        
+        # Fit model if model does not exist or user wants to refit
         if self.model is None or refit_model:
-            # Decide n_neighbours based on k
-            n_neighbors = k + 1 if max_k is None else max_k + 1
-            if degree_of_randomisation is not None:
+            if degree_of_randomisation:
                 if max_k < k:
                     raise ValueError('max_k must be larger than k. Please specify it correctly.')
                 if degree_of_randomisation <= 0 or degree_of_randomisation > 1:
                     raise ValueError('degree_of_randomisation must be between 0 and 1. Please specify it correctly.')
 
             # Fit model
-            input_X = self.X_transformed[:, feature_idx]
-            nbrs = NearestNeighbors(n_neighbors=n_neighbors, **kwargs).fit(input_X)
+            nbrs = NearestNeighbors(n_neighbors=n_neighbors, **kwargs).fit(self.X_transformed[:, feature_idx])
+            self.model = nbrs
 
         row_transformed = self.scaler.transform(row)
-        distances, indices = nbrs.kneighbors(row_transformed[:, feature_idx], n_neighbors=n_neighbors)
+        distances, indices = self.model.kneighbors(row_transformed[:, feature_idx], n_neighbors=n_neighbors)
 
         if degree_of_randomisation:
             random_idx = np.random.choice(indices[0][k + 1:], int(np.ceil(k * degree_of_randomisation)), replace=False)
