@@ -350,9 +350,13 @@ def join_aux(df, adfs):
 
     df = df.copy()
 
-    for k,adf in adfs.items():
+    orig_order = df[['listing_id']].copy()
+
+    for k, adf in adfs.items():
         if k in fn_dict:
             df = fn_dict[k](df, adf)
+
+    df = orig_order.merge(df, on='listing_id', how='left')
 
     return df
 
