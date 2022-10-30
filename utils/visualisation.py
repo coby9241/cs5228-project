@@ -38,8 +38,8 @@ def plot_boxplot(df, feature=None, y='price', y_min=-np.inf, y_max=np.inf, figsi
     ax.boxplot(row, positions=pos, vert=False, whis=whis)
     ax.set_yticklabels(categories)
     
-    plt.ylabel(y)
-    plt.xlabel(feature)
+    plt.ylabel(feature)
+    plt.xlabel(y)
     plt.title(f'{y.upper()} distribution (Box Plot) across {feature.upper()}')
     plt.show()
     
