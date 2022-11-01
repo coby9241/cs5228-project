@@ -136,6 +136,13 @@ def preprocess_latlong(df, is_target=False):
     return df
 
 
+def preprocess_subzone(df, is_target=False):
+    df['subzone'] = df['subzone'].fillna('central subzone')
+    df['planning_area'] = df['planning_area'].fillna('downtown core')
+
+    return df
+
+
 def preprocess_price(df, is_target=False):
     '''
     Filter out prices = 0 and prices in the top 1%
@@ -319,6 +326,7 @@ def preprocess(df, is_target=False, **kwargs):
     df = preprocess_floor_level(df)
     df = preprocess_furnishing(df)
     df = preprocess_latlong(df, is_target)
+    df = preprocess_subzone(df, is_target)
     if not is_target:
         df = preprocess_price(df, is_target)
 
