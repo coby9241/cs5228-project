@@ -71,3 +71,48 @@ def plot_scatterplot(df, X, y, y_min=-np.inf, y_max=np.inf, figsize=(15,10), gro
         plt.title(f'{y.upper()} vs {X.upper()}')
 
     plt.show()
+
+def plot_map(property_listings_df, feature_df, title, group_col=None, figsize=(10, 5)): 
+
+    singapore_img = mpimg.imread('data/extra/sg-map.png')
+
+    fig = plt.figure(figsize=figsize)
+    plt.scatter(
+        x=property_listings_df.lng, 
+        y=property_listings_df.lat, 
+        c=property_listings_df.price,
+        cmap="Reds",
+        alpha=0.4, 
+        s=5
+    )
+    if group_col is not None:
+        for grp in feature_df[group_col].unique():
+            plt.scatter(
+                x=feature_df[feature_df[group_col] == grp].lng, 
+                y=feature_df[feature_df[group_col] == grp].lat, 
+                s=10, 
+                marker="x",
+                label=grp
+            )
+    else: 
+        plt.scatter(
+            x=feature_df.lng, 
+            y=feature_df.lat, 
+            s=10, 
+            marker="x"
+        )
+
+    # use our map with it's bounding coordinates
+    plt.imshow(singapore_img, extent=[103.5, 104., 1.15, 1.50], alpha=0.5)     
+    # add axis labels
+    plt.ylabel("latitude")
+    plt.xlabel("longitude")
+    # set the min/max axis values - these must be the same as above
+    plt.ylim(1.15, 1.50)
+    plt.xlim(103.5, 104)
+
+    plt.title(title)
+
+    plt.legend(loc="best")
+
+    plt.show()
