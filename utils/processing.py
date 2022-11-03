@@ -300,6 +300,9 @@ def join_with_commercial_centres(df, commercial_centres_df):
     df['key'] = 0
     commercial_centres_df['key'] = 0
 
+    # Fix typo in commerical centres
+    commercial_centres_df['type'] = commercial_centres_df['type'].replace(['IEPB'], 'IEBP')
+
     # rename the overlapping columns
     commercial_centres_df = commercial_centres_df.rename(columns={'lat': 'lat_y', 'lng': 'lng_y'})
 
