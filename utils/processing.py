@@ -324,7 +324,7 @@ def preprocess(df, is_target=False, **kwargs):
     df = preprocess_size_sqft(df, is_target)
     df = preprocess_floor_level(df)
     df = preprocess_furnishing(df)
-    df = preprocess_latlong(df, is_target)
+    df = preprocess_latlong(df)
     df = preprocess_subzone(df, is_target)
     if not is_target:
         df = preprocess_price(df, is_target)
