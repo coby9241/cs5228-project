@@ -80,6 +80,8 @@ def preprocess_size_sqft(df, is_target=False):
     if not is_target:
         df = df[(df['size_sqft'] > 0) & (df['size_sqft'] < 1000000)]
 
+    #df['size_sqft'] = df['size_sqft'].copy().apply(lambda x: x * 10.764 if x <= 300 else x)
+
     return df
 
 
@@ -152,6 +154,15 @@ def preprocess_price(df, is_target=False):
     min_price = 0.
     max_price = 100000000
     df = df[(df.price > min_price) & (df.price <= max_price)]
+
+    return df
+
+
+def preprocess_built_year(df, is_target=False, **kwargs):
+    if is_target:
+        df['built_year'] = df['built_year'].fillna(kwargs['built_year'])
+    else:
+        df['built_year'] = df['built_year'].fillna(df['built_year'].median())
 
     return df
 
@@ -300,8 +311,8 @@ def join_with_commercial_centres(df, commercial_centres_df):
     df['key'] = 0
     commercial_centres_df['key'] = 0
 
-    # Fix typo in commerical centres
-    commercial_centres_df['type'] = commercial_centres_df['type'].replace(['IEPB'], 'IEBP')
+    # fix typo in aux data set
+    commercial_centres_df.loc[commercial_centres_df["type"] == "IEPB", "type"] = "IEBP"
 
     # rename the overlapping columns
     commercial_centres_df = commercial_centres_df.rename(columns={'lat': 'lat_y', 'lng': 'lng_y'})
@@ -322,13 +333,15 @@ def join_with_commercial_centres(df, commercial_centres_df):
 def preprocess(df, is_target=False, **kwargs):
     df = preprocess_property_type(df)
     df = preprocess_tenure(df)
-    df = preprocess_num_beds(df, is_target, **kwargs)
-    df = preprocess_num_baths(df, is_target, **kwargs)
     df = preprocess_size_sqft(df, is_target)
     df = preprocess_floor_level(df)
     df = preprocess_furnishing(df)
     df = preprocess_latlong(df)
     df = preprocess_subzone(df, is_target)
+    #df = preprocess_num_beds(df, is_target, **kwargs)
+    #df = preprocess_num_baths(df, is_target, **kwargs)
+    #df = preprocess_built_year(df, is_target, **kwargs)
+
     if not is_target:
         df = preprocess_price(df, is_target)
 
