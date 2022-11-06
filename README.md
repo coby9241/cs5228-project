@@ -1,4 +1,4 @@
-# cs5228-project
-Repo for storing anything related to CS5228 
+# CS5228 Project for Group 41
+Repo for storing codes related to CS5228 for Group 41.
 
-Link to Google Drive: https://drive.google.com/drive/folders/1XG7pVo-4NuAX-ADMnKtp0J0Tg_MR2FCU
+Files are divided into the following folders: task1, task2, task3 for the codes for each individual task.
